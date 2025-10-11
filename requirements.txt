@@ -1,0 +1,13 @@
+pydantic~=2.11.7
+pydantic-settings~=2.10.1
+google-api-python-client~=2.176.0
+google-auth-httplib2
+google-auth-oauthlib
+python-dotenv
+
+httpx~=0.28.1
+protobuf~=6.31.1
+beautifulsoup4~=4.13.4
+requests~=2.32.4
+
+tenacity~=9.1.2
