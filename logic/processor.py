@@ -11,6 +11,7 @@ from clients.digiseller_client import DigisellerClient
 from models.digiseller_models import BsProduct, ProductPriceUpdate, ProductPriceVariantUpdate
 from models.sheet_models import Payload
 from services.digiseller_service import get_product_list, analyze_product_offers, get_product_description
+from services.ggsell_service import GGSellService
 
 
 async def process_single_payload(payload: Payload) -> Dict[str, Any]:
@@ -65,8 +66,8 @@ async def process_single_payload(payload: Payload) -> Dict[str, Any]:
 
 
 async def do_compare_flow(payload: Payload) -> Dict[str, Any]:
-    html_str = requests.get(payload.product_compare).text
-    product_list = await get_product_list(html_str, payload.product_compare2)
+    gg_service = GGSellService()
+    product_list = await gg_service.get_list_variants_products_for_processor(url=payload.product_compare, option_str=payload.product_compare2)
     if not product_list:
         raise ValueError("No products found in the provided link")
     filtered_product_list = filter_products(product_list, payload)

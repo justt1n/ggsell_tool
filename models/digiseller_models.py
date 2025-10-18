@@ -3,6 +3,8 @@ from typing import List, Optional, Literal, Dict, Any
 
 from pydantic import BaseModel, Field
 
+from models.gg_sell_models import Button
+
 
 class AuthToken(BaseModel):
     token: str
@@ -112,13 +114,14 @@ class BulkPriceUpdateResponse(BaseModel):
 
 
 class BsProduct(BaseModel):
+    id: int
     seller_name: Optional[str] = None
     name: str
-    price: Optional[float] = None
+    price: Optional[float] = -1
     outside_price: str
     sold_count: Optional[str] = None
     link: str
-    image_link: str
+    list_button: Optional[List[Button]] = None
 
     def get_price(self) -> Optional[float]:
         if self.price != -1:
@@ -130,6 +133,7 @@ class BsProduct(BaseModel):
             except ValueError:
                 return None
         return None
+
 
 
 class InsideInfo(BaseModel):

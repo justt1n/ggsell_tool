@@ -1,7 +1,5 @@
 import asyncio
 import logging
-# Bỏ import signal vì không cần nữa
-# import signal
 from time import sleep
 
 from clients.digiseller_client import DigisellerClient

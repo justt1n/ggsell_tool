@@ -15,9 +15,7 @@ class Settings(BaseSettings):
     DIGI_API_KEY: str
     SELLER_ID: int
     # Đọc chuỗi JSON từ .env và chuyển thành list
-    HEADER_KEY_COLUMNS_JSON: str = '["CHECK", "Product_name", "product_variant_id"]'
-    EXPORT_SHEET_ID: str
-    EXPORT_SHEET_NAME: str
+    HEADER_KEY_COLUMNS_JSON: str = '["CHECK", "Product_name", "Parameter"]'
     SLEEP_TIME: int = 5
     CURRENCY: str = 'RUB'
     BATCH_SIZE: int = 20
