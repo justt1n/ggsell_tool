@@ -70,7 +70,8 @@ async def do_compare_flow(payload: Payload) -> Dict[str, Any]:
     product_list = await gg_service.get_list_variants_products_for_processor(url=payload.product_compare, option_str=payload.product_compare2)
     if not product_list:
         raise ValueError("No products found in the provided link")
-    filtered_product_list = filter_products(product_list, payload)
+    # filtered_product_list = filter_products(product_list, payload)
+    filtered_product_list = product_list
 
     analysis_result = analyze_product_offers(
         offers=filtered_product_list,

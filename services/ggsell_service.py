@@ -5,8 +5,10 @@ import aiohttp
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+from logic.processor import filter_products
 from models.digiseller_models import BsProduct
 from models.gg_sell_models import Button
+from models.sheet_models import Payload
 from utils.ggsell_utils import extract_json_from_html
 
 HEADERS = {
@@ -23,6 +25,25 @@ PRODUCT_BASE_URL = 'https://ggsel.net/en/catalog/product/'
 IMAGE_BASE_URL = "https://cdn.ggsel.com/images/"
 PRICE_API_URL_TEMPLATE = "https://api4.ggsel.com/goods/{good_id}/price"
 NUMBER_OF_PRODUCTS_TO_GET = 60
+
+
+def _filter_products(products: List[BsProduct], payload: Payload) -> List[BsProduct]:
+    filtered_products = []
+    for product in products:
+        if payload.include_keyword is not None:
+            include_kws = payload.include_keyword.split(',')
+            if not any(kw.strip().lower() in product.name.lower() for kw in include_kws):
+                continue
+        if payload.exclude_keyword is not None:
+            exclude_kws = payload.exclude_keyword.split(',')
+            if any(kw.strip().lower() in product.name.lower() for kw in exclude_kws):
+                continue
+        if int(product.sold_count) < payload.order_sold:
+            continue
+        filtered_products.append(product)
+
+    return filtered_products
+
 
 class GGSellService:
     """Service class to interact with the GGSel API asynchronously."""
@@ -217,7 +238,38 @@ class GGSellService:
 
             return [p for p in fulfilled_products if p]  # Filter out None results if any
 
-    async def get_list_variants_products_for_processor(self, url: str, option_str: str) -> List[BsProduct]:
+    async def fetch_product_list(self, session: aiohttp.ClientSession, url: str) -> List[BsProduct]:
+        html_doc = await self.get_html_doc(session, url)
+        if not html_doc:
+            print("Can not fetch HTML document")
+            return []
+
+        id_sec = self.get_id_section_from_html(html_doc)
+        products_raw = await self.get_category_data(session, id_sec)
+        if not products_raw:
+            print("Can not fetch product data from category")
+            return []
+
+        products = [self.convert_to_bs_product(prod) for prod in products_raw]
+        return products
+
+    async def fulfill_product_details(self, session: aiohttp.ClientSession, products: List[BsProduct]) -> List[
+        BsProduct]:
+        semaphore = asyncio.Semaphore(5)
+
+        async def fulfill_with_semaphore(product: BsProduct):
+            async with semaphore:
+                await asyncio.sleep(1)
+                return await self.fulfill_button_data(session, product)
+
+        tasks = [fulfill_with_semaphore(prod) for prod in products]
+
+        fulfilled_products = await asyncio.gather(*tasks)
+
+        return [p for p in fulfilled_products if p]
+
+
+    async def get_list_variants_products_for_processor(self, url: str, option_str: str, payload: Payload) -> List[BsProduct]:
         semaphore = asyncio.Semaphore(5)
 
         async def fulfill_with_semaphore(session, product):
@@ -240,7 +292,8 @@ class GGSellService:
             _product_to_get = min(NUMBER_OF_PRODUCTS_TO_GET, len(products)) - 1
 
             products = products[:_product_to_get]
-            tasks = [fulfill_with_semaphore(session, prod) for prod in products]
+            filter_products = _filter_products(products, payload)
+            tasks = [fulfill_with_semaphore(session, prod) for prod in filter_products]
 
             fulfilled_products = await asyncio.gather(*tasks)
 
@@ -268,7 +321,6 @@ async def main():
             for button in product.list_button:
                 price_str = f"${button.price:.2f}" if button.price is not None else "Price not available"
                 print(f"  - Option: '{button.name}' (ID: {button.id}) -> Price: {price_str}")
-
 
 # if __name__ == "__main__":
 #     # Ensure you have the necessary libraries installed:
