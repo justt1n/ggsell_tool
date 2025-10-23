@@ -5,7 +5,6 @@ import aiohttp
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-from logic.processor import filter_products
 from models.digiseller_models import BsProduct
 from models.gg_sell_models import Button
 from models.sheet_models import Payload
